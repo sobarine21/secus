@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import json
 import tempfile
+
 from PyPDF2 import PdfReader
 
 st.title("Compliance Analysis API Streamlit App")
@@ -24,18 +25,27 @@ uploaded_pdf = st.file_uploader("Upload a PDF for regulatory or compliance conte
 
 pdf_text = ""
 if uploaded_pdf is not None:
-    # Read PDF contents
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_pdf.getvalue())
             tmp_file.flush()
             reader = PdfReader(tmp_file.name)
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    pdf_text += text + "\n"
-        st.success("PDF text extracted successfully.")
-        st.text_area("Extracted PDF Text", pdf_text, height=200)
+            num_pages = len(reader.pages)
+            if num_pages == 0:
+                st.error("PDF contains no pages.")
+            else:
+                for i in range(num_pages):
+                    try:
+                        text = reader.pages[i].extract_text()
+                        if text:
+                            pdf_text += text + "\n"
+                    except Exception as page_err:
+                        st.warning(f"Could not extract text from page {i+1}: {page_err}")
+                if pdf_text:
+                    st.success("PDF text extracted successfully.")
+                    st.text_area("Extracted PDF Text", pdf_text, height=200)
+                else:
+                    st.error("No text could be extracted from the PDF.")
     except Exception as e:
         st.error(f"Failed to extract text from PDF: {e}")
 
